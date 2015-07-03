@@ -122,7 +122,6 @@ if(not os.path.isfile('classalarm.cfg')):
     "toaddrs": "destination@example.com",
     "comment1": "Sender must be a valid gmail account",
     "fromaddr": "sender@gmail.com",
-    "username": "sender",
     "password": "password"
 }
 ''')
@@ -133,7 +132,6 @@ else:
     f = open('classalarm.cfg', 'r')
     config = json.loads(f.read())
     f.close()
-
 
 count = 0
 
@@ -163,7 +161,7 @@ while True:
             fromaddr = config['fromaddr']
             toaddrs  = config['toaddrs']
             msg = 'Subject: Enroll in '+classes[i].classID+'\n\nDetected an opening at '+str(datetime.datetime.now())
-            username = config['username']
+            username = fromaddr[:fromaddr.find('@')]
             password = config['password']
             server = smtplib.SMTP('smtp.gmail.com:587')
             server.starttls()
