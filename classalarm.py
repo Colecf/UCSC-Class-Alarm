@@ -169,7 +169,7 @@ while True:
             server.sendmail(fromaddr, toaddrs, msg)
             server.quit()
 
-            while 1:    # Hang, because keepalive would keep sending
+            while 1:               # Hang, because keepalive would keep sending
                 time.sleep(100)    # emails if we quit.
 
         else:
