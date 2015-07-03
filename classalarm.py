@@ -137,8 +137,15 @@ count = 0
 
 while True:
     br = mechanize.Browser()
-    br.open('https://pisa.ucsc.edu/class_search/')
-
+    sucessfullyRead = False
+    while not sucessfullyRead:
+        try:
+            br.open('https://pisa.ucsc.edu/class_search/')
+            sucessfullyRead = True
+        except:
+            print "Couldn't load ucsc website! Is your internet or the ucsc website down? Retrying in 30 secs"
+            time.sleep(30)
+        
     br.select_form(name='searchForm')
     br['binds[:reg_status]'] = ['all'];
     br['binds[:subject]'] = [config['subject']];
