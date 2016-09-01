@@ -54,59 +54,42 @@ class Class:
             self.instructor+' '+self.status+' '+str(self.capacity)+' '+str(self.enrolled)+' '+self.location+\
             ' credits:'+str(self.credits) +' '+self.ge
 
-def readClasses(html):
-    soup = BeautifulSoup(html)
-    tbody = soup.find('td', class_='even').parent.parent
+def readClasses(response):
     classes = []
-    for tr in tbody.find_all('tr'):
+    soup = BeautifulSoup(response)
+
+    if "returned no matches." in response:
+        return []
+           
+    container = soup.select('.center-block > .panel-body')[0]
+    for row in container.find_all('div', class_="panel"):
         collumn = 0
         c = Class()
-        for td in tr.find_all('td'):
-            if collumn==0:
-                c.classLink = "https://pisa.ucsc.edu/class_search/"+td.a['href'];
-                c.classNum = int(td.a.getText());
-            elif collumn==1:
-                c.classID = td.getText();
-            elif collumn==2:
-                c.classTitle = td.a.getText();
-            elif collumn==3:
-                c.classType = td.getText();
-            elif collumn==4:
-                #Split by capital letters
-                c.days = re.findall(r'[A-Z][^A-Z]*', td.getText());
-            elif collumn==5:
-                times = td.getText().split("-")
-                startTimes = times[0].split(":")
-                endTimes = times[1].split(":")
-                hour = int(startTimes[0])
-                if times[0][-2] == "A" and hour == 12:
-                    hour = 0
-                elif times[0][-2] == "P" and hour != 12:
-                    hour = hour + 12
-                    c.startTime = datetime.time(hour, int(startTimes[1][:2]))
-                    hour = int(endTimes[0])
-                if times[1][-2] == "A" and hour == 12:
-                    hour = 0
-                elif times[1][-2] == "P" and hour != 12:
-                    hour = hour + 12
-                c.endTime = datetime.time(hour, int(endTimes[1][:2]))
-            elif collumn==6:
-                c.instructor = td.getText();
-            elif collumn==7:
-                c.status = td.center.img['alt'];
-            elif collumn==8:
-                c.capacity = int(td.getText());
-            elif collumn==9:
-                c.enrolled = int(td.getText());
-            #skip 10 because available seats can be calculated
-            elif collumn==11:
-                c.location = td.getText();
-            elif collumn==12:
-                c.materialsLink = td.input['onclick'][13:-12]
-            collumn=collumn+1
+        repeat = False
+        heading = row.find('div', class_='panel-heading')
+        c.classLink = "https://pisa.ucsc.edu/class_search/"+heading.find('a')['href'];
+        c.classID = heading.find('a').getText()
+        c.classTitle = heading.find_all('a')[1].getText()
+        c.status = heading.find('span').getText()
 
+        bodyrows = row.select('.panel-body > .row > div')
+        c.classNum = bodyrows[0].find('a').getText()
+        c.instructor = bodyrows[1].find(text=True, recursive=False).strip()
+        typeAndLoc = bodyrows[2].find(text=True, recursive=False).strip()
+        if typeAndLoc and ":" in typeAndLoc:
+            split = typeAndLoc.split(': ')
+            c.classType = split[0]
+            c.location = split[1]
 
-        classes.append(c)
+        peopleStr = bodyrows[4].getText().strip()
+        peopleStrSpace = peopleStr.find(' ')
+        peopleStrSpace2 = peopleStr.find(' ', peopleStrSpace+1)
+        c.enrolled = int(peopleStr[0:peopleStrSpace])
+        c.capacity = int(peopleStr[peopleStrSpace2+1:peopleStr.find(' ', peopleStrSpace2+1)])
+        c.materialsLink = bodyrows[5].find('a')['href']
+            
+        if not repeat:
+            classes.append(c)
     return classes
 
 
@@ -120,7 +103,7 @@ if(not os.path.isfile('classalarm.cfg')):
     "secsBetweenChecks": 10,
 
     "toaddrs": "destination@example.com",
-    "comment1": "Sender must be a valid gmail account",
+    "smptServer": "smtp.gmail.com:587"
     "fromaddr": "sender@gmail.com",
     "password": "password"
 }
@@ -161,7 +144,7 @@ while True:
     print "Attempt "+str(count)
 
     for i in range(0, len(classes)):
-        if (classes[i].status != "Closed"):
+        if (classes[i].status == "Open"):
             print classes[i].classID + " AVAILABLE!!!"
             sys.stdout.write('\a')
             sys.stdout.flush()
@@ -170,7 +153,7 @@ while True:
             msg = 'Subject: Enroll in '+classes[i].classID+'\n\nDetected an opening at '+str(datetime.datetime.now())
             username = fromaddr[:fromaddr.find('@')]
             password = config['password']
-            server = smtplib.SMTP('smtp.gmail.com:587')
+            server = smtplib.SMTP(config['smtpServer'])
             server.starttls()
             server.login(username,password)
             server.sendmail(fromaddr, toaddrs, msg)
@@ -180,5 +163,5 @@ while True:
                 time.sleep(100)    # emails if we quit.
 
         else:
-            print classes[i].classID + " unavailable"
+            print classes[i].classID + " " + classes[i].status
     time.sleep(config['secsBetweenChecks'])
