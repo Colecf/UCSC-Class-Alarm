@@ -4,7 +4,7 @@ Classes with waitlists are considered open.
 
 Requires BeautifulSoup4 and Mechanize. For python 2.7.
 
-If you're on the UCSC timeshare, classalarm is already installed. You can get it by running `/tmp/wconfig`, and then running `classalarm`. As an alternative to wconfig, you can add the following to your bashrc:
+If you're on the UCSC timeshare, classalarm is already installed. You can get it by adding the following to your bashrc, and then running `classalarm`.
 
 ```
 export PYTHONPATH=/afs/cats.ucsc.edu/users/o/cfaust/programs/data/python/pymodules/:$PYTHONPATH
